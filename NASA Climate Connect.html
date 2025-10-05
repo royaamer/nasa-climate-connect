@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>طقس تفاعلي مع NASA — نسخة محسنة</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --accent: #FED046;
+    --accent-dark: #e6b800;
+    --text: #ECECEC;
+    --bg-dark: #1a2530;
+    --bg-card: rgba(255, 255, 255, 0.05);
+    --bg-card-hover: rgba(255, 255, 255, 0.08);
+    --success: #4CAF50;
+    --warning: #FF9800;
+    --danger: #F44336;
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: linear-gradient(135deg, #2c3e50, #1a2530);
+    transition: background 0.6s;
+    line-height: 1.6;
+  }
+  
+  .app {
+    width: 100%;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  .card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    background: var(--bg-card-hover);
+  }
+  
+  .search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  input[type="search"] {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text);
+    outline: none;
+    font-size: 16px;
+    transition: all 0.3s;
+  }
+  
+  input[type="search"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(254, 208, 70, 0.2);
+  }
+  
+  button.btn {
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: none;
+    background: var(--accent);
+    color: #111;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  button.btn:hover {
+    background: var(--accent-dark);
+    transform: scale(1.05);
+  }
+  
+  .main-weather {
+    text-align: center;
+    margin-top: 10px;
+  }
+  
+  .city-name {
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .big-temp {
+    font-size: 72px;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 10px 0;
+  }
+  
+  .big-temp sup {
+    font-size: 32px;
+    margin-top: 12px;
+  }
+  
+  .cond {
+    font-size: 18px;
+    opacity: 0.95;
+    margin-bottom: 20px;
+  }
+  
+  .weather-icon {
+    font-size: 48px;
+    margin: 15px 0;
+  }
+  
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+  }
+  
+  .detail {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px 10px;
+    border-radius: 12px;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  
+  .detail:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-3px);
+  }
+  
+  .detail i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: var(--accent);
+  }
+  
+  .detail .label {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-bottom: 5px;
+  }
+  
+  .forecast {
+    margin-top: 25px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px;
+    border-radius: 12px;
+  }
+  
+  .forecast-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .forecast-list {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-top: 8px;
+  }
+  
+  .fitem {
+    min-width: 90px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 8px;
+    border-radius: 10px;
+    text-align: center;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  
+  .fitem:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-3px);
+  }
+  
+  .fitem .day {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  
+  .fitem .temp {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 5px 0;
+  }
+  
+  .fitem .icon {
+    font-size: 24px;
+    margin: 5px 0;
+    color: var(--accent);
+  }
+  
+  .alert {
+    margin-top: 15px;
+    padding: 12px 15px;
+    border-radius: 10px;
+    background: rgba(220, 38, 38, 0.15);
+    color: #fff;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    border-left: 4px solid var(--danger);
+  }
+  
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .panel {
+    background: var(--bg-card);
+    padding: 20px;
+    border-radius: 12px;
+    min-height: 200px;
+    transition: all 0.3s;
+  }
+  
+  .panel:hover {
+    background: var(--bg-card-hover);
+  }
+  
+  .panel h4 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .panel h4 i {
+    color: var(--accent);
+  }
+  
+  .cities-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+  }
+  
+  .city-btn {
+    padding: 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+  }
+  
+  .city-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+  
+  .city-btn.active {
+    background: var(--accent);
+    color: #111;
+    font-weight: 600;
+  }
+  
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+  }
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .error {
+    color: var(--danger);
+    text-align: center;
+    padding: 15px;
+    background: rgba(244, 67, 54, 0.1);
+    border-radius: 10px;
+    margin: 10px 0;
+  }
+  
+  .success {
+    color: var(--success);
+    text-align: center;
+    padding: 15px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 10px;
+    margin: 10px 0;
+  }
+  
+  /* تحسينات للهواتف المحمولة */
+  @media (max-width: 980px) {
+    .app {
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+    
+    .big-temp {
+      font-size: 60px;
+    }
+    
+    .details-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .cities-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .details-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .cities-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .big-temp {
+      font-size: 50px;
+    }
+    
+    .city-name {
+      font-size: 20px;
+    }
+  }
+  
+  /* تخصيص شريط التمرير */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 10px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-dark);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- LEFT -->
+  <div class="card">
+    <div class="search-row">
+      <input id="search-input" type="search" placeholder="ابحث عن أي مدينة (مثلاً: عمان، القاهرة، الرياض)" />
+      <button class="btn" id="search-btn"><i class="fas fa-search"></i></button>
+    </div>
+    
+    <div class="main-weather">
+      <div class="city-name" id="city-name">
+        <i class="fas fa-map-marker-alt"></i> 
+        <span id="city-text">جاري التحميل...</span>
+      </div>
+      
+      <div class="weather-icon" id="weather-icon">
+        <i class="fas fa-sun"></i>
+      </div>
+      
+      <div class="big-temp">
+        <span id="temperature">--</span>
+        <sup>°C</sup>
+      </div>
+      
+      <div class="cond" id="condition">--</div>
+      
+      <div class="details-grid">
+        <div class="detail">
+          <i class="fas fa-tint"></i>
+          <div class="label">الرطوبة</div>
+          <div id="humidity">--%</div>
+        </div>
+        <div class="detail">
+          <i class="fas fa-wind"></i>
+          <div class="label">الرياح</div>
+          <div id="wind">-- كم/س</div>
+        </div>
+        <div class="detail">
+          <i class="fas fa-temperature-low"></i>
+          <div class="label">تشعر بـ</div>
+          <div id="feels">--°</div>
+        </div>
+      </div>
+      
+      <div class="forecast">
+        <div class="forecast-header">
+          <strong>توقعات (5 أيام)</strong>
+          <i class="fas fa-calendar-alt"></i>
+        </div>
+        <div class="forecast-list" id="forecast-list" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="side">
+    <div class="panel">
+      <h4><i class="fas fa-chart-line"></i> مخطط درجات الحرارة</h4>
+      <canvas id="tempChart" height="180"></canvas>
+    </div>
+    
+    <div class="panel">
+      <h4><i class="fas fa-cloud-sun-rain"></i> بيانات ناسا</h4>
+      <div id="nasa-data" class="loading">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <h4><i class="fas fa-globe-asia"></i> مدن سريعة</h4>
+      <div class="cities-grid" id="cities-grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const apiKey = "599dd7e6a358e80ee109a8eaa2b5fed2";
+const PRESETS = ["Amman", "Cairo", "Riyadh", "Dubai", "Beirut", "Jerusalem", "Doha", "Kuwait City"];
+const displayNames = {
+  "Amman": "عمان", 
+  "Cairo": "القاهرة", 
+  "Riyadh": "الرياض", 
+  "Dubai": "دبي", 
+  "Beirut": "بيروت",
+  "Jerusalem": "القدس",
+  "Doha": "الدوحة",
+  "Kuwait City": "الكويت"
+};
+
+// عناصر DOM
+const searchInput = document.getElementById('search-input');
+const searchBtn = document.getElementById('search-btn');
+const cityNameEl = document.getElementById('city-name');
+const cityTextEl = document.getElementById('city-text');
+const tempEl = document.getElementById('temperature');
+const condEl = document.getElementById('condition');
+const humidityEl = document.getElementById('humidity');
+const windEl = document.getElementById('wind');
+const feelsEl = document.getElementById('feels');
+const forecastList = document.getElementById('forecast-list');
+const weatherIconEl = document.getElementById('weather-icon');
+const tempChartEl = document.getElementById('tempChart').getContext('2d');
+const nasaDataEl = document.getElementById('nasa-data');
+const citiesGridEl = document.getElementById('cities-grid');
+
+let tempChart = null;
+let currentCity = "";
+
+// رموز الطقس والأيقونات
+const weatherIcons = {
+  "Clear": "fa-sun",
+  "Clouds": "fa-cloud",
+  "Rain": "fa-cloud-rain",
+  "Drizzle": "fa-cloud-drizzle",
+  "Thunderstorm": "fa-bolt",
+  "Snow": "fa-snowflake",
+  "Mist": "fa-smog",
+  "Smoke": "fa-smog",
+  "Haze": "fa-smog",
+  "Dust": "fa-smog",
+  "Fog": "fa-smog",
+  "Sand": "fa-smog",
+  "Ash": "fa-smog",
+  "Squall": "fa-wind",
+  "Tornado": "fa-tornado"
+};
+
+// إنشاء أزرار المدن السريعة
+function createCityButtons() {
+  citiesGridEl.innerHTML = "";
+  PRESETS.forEach(city => {
+    const button = document.createElement('button');
+    button.className = 'city-btn';
+    button.textContent = displayNames[city] || city;
+    button.addEventListener('click', () => {
+      // إزالة النشط من جميع الأزرار
+      document.querySelectorAll('.city-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      // إضافة النشط للزر المحدد
+      button.classList.add('active');
+      
+      searchInput.value = displayNames[city] || city;
+      fetchAndRender(city);
+    });
+    citiesGridEl.appendChild(button);
+  });
+}
+
+/* ===== API calls ===== */
+async function getCoords(city) {
+  const r = await fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${apiKey}`);
+  if (!r.ok) throw new Error('خطأ في تحديد الموقع');
+  const arr = await r.json();
+  if (!arr || arr.length === 0) throw new Error('لم أجد المدينة');
+  return { lat: arr[0].lat, lon: arr[0].lon, name: arr[0].name };
+}
+
+async function getCurrentWeather(city) {
+  const r = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=metric&lang=ar&appid=${apiKey}`);
+  if (!r.ok) throw new Error('خطأ في جلب بيانات الطقس الحالي');
+  return r.json();
+}
+
+async function getForecast(lat, lon) {
+  const r = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&lang=ar&appid=${apiKey}`);
+  if (!r.ok) throw new Error('خطأ في جلب بيانات التوقعات');
+  return r.json();
+}
+
+async function getNASAData(lat, lon) {
+  try {
+    const r = await fetch(`https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M,RH2M&community=AG&longitude=${lon}&latitude=${lat}&format=JSON&start=20230101&end=20231231`);
+    if (!r.ok) throw new Error('خطأ في جلب بيانات ناسا');
+    const data = await r.json();
+    return data.properties.parameter; // T2M=درجة الحرارة, RH2M=الرطوبة
+  } catch (error) {
+    console.error("خطأ في بيانات ناسا:", error);
+    return null;
+  }
+}
+
+/* ====== fetch & render ====== */
+async function fetchAndRender(city) {
+  try {
+    // عرض حالة التحميل
+    cityTextEl.textContent = 'جاري التحميل...';
+    tempEl.textContent = '--';
+    condEl.textContent = '';
+    forecastList.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    nasaDataEl.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    
+    // جلب البيانات
+    const coords = await getCoords(city);
+    const weather = await getCurrentWeather(coords.name);
+    const forecastRaw = await getForecast(coords.lat, coords.lon);
+    const nasa = await getNASAData(coords.lat, coords.lon);
+    
+    // تحديث واجهة الطقس الحالي
+    const ctemp = Math.round(weather.main.temp);
+    const cdesc = weather.weather[0].description;
+    const weatherMain = weather.weather[0].main;
+    
+    cityTextEl.textContent = displayNames[coords.name] || coords.name;
+    currentCity = coords.name;
+    tempEl.textContent = ctemp;
+    condEl.textContent = cdesc;
+    humidityEl.textContent = (weather.main.humidity || '--') + '%';
+    windEl.textContent = (weather.wind.speed || '--') + ' كم/س';
+    feelsEl.textContent = Math.round(weather.main.feels_like || ctemp) + '°';
+    
+    // تحديث أيقونة الطقس
+    const iconClass = weatherIcons[weatherMain] || "fa-cloud";
+    weatherIconEl.innerHTML = `<i class="fas ${iconClass}"></i>`;
+    
+    /* ====== التوقعات والرسم البياني ====== */
+    const labels = [], owTemps = [], nasaTemps = [];
+    const daysMap = {};
+    
+    forecastRaw.list.forEach(item => {
+      const day = item.dt_txt.split(' ')[0];
+      if (!daysMap[day]) daysMap[day] = [];
+      daysMap[day].push(item.main.temp);
+    });
+    
+    forecastList.innerHTML = '';
+    Object.keys(daysMap).slice(0, 5).forEach(day => {
+      const date = new Date(day);
+      const dayName = date.toLocaleDateString('ar-SA', { weekday: 'short' });
+      labels.push(dayName);
+      
+      const avg = daysMap[day].reduce((a, b) => a + b, 0) / daysMap[day].length;
+      owTemps.push(avg.toFixed(1));
+      nasaTemps.push((nasa && nasa.T2M && nasa.T2M[day] ? nasa.T2M[day] : avg).toFixed(1));
+      
+      // عرض التوقعات
+      const div = document.createElement('div');
+      div.className = 'fitem';
+      div.innerHTML = `
+        <div class="day">${dayName}</div>
+        <div class="icon"><i class="fas ${weatherIcons[weatherMain] || "fa-cloud"}"></i></div>
+        <div class="temp">${avg.toFixed(1)}°</div>
+      `;
+      forecastList.appendChild(div);
+    });
+    
+    // تحديث الرسم البياني
+    if (tempChart) tempChart.destroy();
+    tempChart = new Chart(tempChartEl, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'OpenWeather °C',
+            data: owTemps,
+            borderColor: 'rgba(254, 208, 70, 0.95)',
+            backgroundColor: 'rgba(254, 208, 70, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          },
+          {
+            label: 'NASA °C',
+            data: nasaTemps,
+            borderColor: 'rgba(70, 208, 254, 0.95)',
+            backgroundColor: 'rgba(70, 208, 254, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#ECECEC'
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: false,
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              color: '#ECECEC'
+            }
+          },
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              color: '#ECECEC'
+            }
+          }
+        }
+      }
+    });
+    
+    // عرض بيانات ناسا
+    if (nasa) {
+      nasaDataEl.innerHTML = `
+        <div class="details-grid">
+          <div class="detail">
+            <i class="fas fa-temperature-high"></i>
+            <div class="label">متوسط الحرارة (ناسا)</div>
+            <div>${nasa.T2M ? Object.values(nasa.T2M).reduce((a, b) => a + b, 0) / Object.values(nasa.T2M).length : '--'}°C</div>
+          </div>
+          <div class="detail">
+            <i class="fas fa-tint"></i>
+            <div class="label">متوسط الرطوبة (ناسا)</div>
+            <div>${nasa.RH2M ? (Object.values(nasa.RH2M).reduce((a, b) => a + b, 0) / Object.values(nasa.RH2M).length).toFixed(1) : '--'}%</div>
+          </div>
+        </div>
+      `;
+    } else {
+      nasaDataEl.innerHTML = '<div class="error">تعذر تحميل بيانات ناسا</div>';
+    }
+    
+  } catch (err) {
+    console.error(err);
+    cityTextEl.textContent = 'خطأ: ' + err.message;
+    forecastList.innerHTML = '<div class="error">تعذر تحميل البيانات</div>';
+    nasaDataEl.innerHTML = '<div class="error">تعذر تحميل البيانات</div>';
+  }
+}
+
+/* ====== البحث ====== */
+searchBtn.addEventListener('click', () => {
+  const q = searchInput.value.trim();
+  if (q) {
+    // البحث باسم المدينة بالعربية أو الإنجليزية
+    const foundCity = Object.keys(displayNames).find(key => 
+      displayNames[key] === q || key.toLowerCase() === q.toLowerCase()
+    );
+    
+    if (foundCity) {
+      fetchAndRender(foundCity);
+    } else {
+      // إذا لم تكن المدينة معروفة، حاول البحث بها مباشرة
+      fetchAndRender(q);
+    }
+  }
+});
+
+searchInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = searchInput.value.trim();
+    if (q) {
+      const foundCity = Object.keys(displayNames).find(key => 
+        displayNames[key] === q || key.toLowerCase() === q.toLowerCase()
+      );
+      
+      if (foundCity) {
+        fetchAndRender(foundCity);
+      } else {
+        fetchAndRender(q);
+      }
+    }
+  }
+});
+
+/* ====== التهيئة ====== */
+document.addEventListener('DOMContentLoaded', () => {
+  createCityButtons();
+  searchInput.value = displayNames[PRESETS[0]] || PRESETS[0];
+  
+  // تحديد الزر النشط للمدينة الأولى
+  const firstCityBtn = document.querySelector('.city-btn');
+  if (firstCityBtn) {
+    firstCityBtn.classList.add('active');
+  }
+  
+  fetchAndRender(PRESETS[0]);
+});
+</script>
+</body>
+</html>
